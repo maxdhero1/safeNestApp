@@ -29,11 +29,11 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentType: {
     type: String,
-    enum: ['rent', 'deposit', 'commission', 'others'],
+    enum: ['rent', 'deposit'],
     default: 'rent'
   },
 
-  // Paystack or Gateway Fields
+  // Paystack fields
   reference: {
     type: String,
     required: true,

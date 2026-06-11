@@ -41,6 +41,7 @@ const getMyBookings = async (req, res) => {
     const bookings = await Booking.find({ tenant: req.user.id })
       .populate('property', 'title address city pricePerMonth images')
       .populate('landlord', 'name phone')
+      .populate('payment')
       .sort({ createdAt: -1 });
 
     res.json(bookings);
@@ -79,7 +80,6 @@ const updateBookingStatus = async (req, res) => {
     if (booking.landlord.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
-
     booking.status = status;
 
     // If approved, mark property as unavailable

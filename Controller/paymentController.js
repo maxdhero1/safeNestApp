@@ -68,16 +68,19 @@ const verifyPayment = async (req, res) => {
 
     if (response.data.status === "success") {
       payment.status = 'successful';
+
       payment.transactionId = response.data.id;
       await payment.save();
 
       // Update Booking
+
       await Booking.findByIdAndUpdate(payment.booking, {
         status: 'active',
-        paymentStatus: 'paid'
+        paymentStatus: 'paid',
+        payment: payment._id,
       });
 
-      res.json({ success: true, message: "Payment successful!", payment });
+      res.json({ success: true, message: "Payment successful! Booking is now active", payment });
     } else {
       payment.status = 'failed';
       await payment.save();

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const bookingSchema = new mongoose.Schema({
     property: {
         type:mongoose.Schema.type.objectId,
@@ -31,7 +32,7 @@ const bookingSchema = new mongoose.Schema({
 
     status:{
         type: String,
-        enum: ['pending', 'approved', 'completed', 'cancelled', 'rejected'],
+        enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
     },
 

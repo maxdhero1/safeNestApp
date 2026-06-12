@@ -22,7 +22,20 @@ const port = process.env.PORT || 7777;
 app.use(cors());
 app.use(express.json()); // Parses incoming JSON payloads
 
+
+// Smoke Test
+app.get('/api/v1/health', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'SafeNest API is alive and kicking! 🚀',
+        timestamp: new Date().toISOString()
+    });
+});
 // 3. MOUNT APPLICATION ENDPOINTS
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/properties', propertyRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/properties', propertyRoutes);

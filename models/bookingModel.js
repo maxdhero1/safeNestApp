@@ -2,17 +2,17 @@ const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
     property: {
-        type:mongoose.Schema.type.objectId,
+        type:mongoose.Schema.Types.ObjectId,
         ref: 'property',
         required: true
     },
     tenant: {
-        type:mongoose.Schema.type.objectId,
+        type:mongoose.Schema.Types.ObjectId,
         ref: 'user',
         required: true
     },
     landlord: {
-        type: mongoose.Schema.type.objectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'user',
         required: true
     },
@@ -41,7 +41,6 @@ const bookingSchema = new mongoose.Schema({
         enum: ['unpaid', 'paid', 'refunded'],
         default: 'unpaid'
     },
-    timeStamp: true
 })
 
-module.exports = mongoose.bookingSchema("booking", bookingSchema)
+module.exports = mongoose.model("booking", bookingSchema);

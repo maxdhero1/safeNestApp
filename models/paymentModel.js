@@ -65,7 +65,6 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-paymentSchema.index({ reference: 1 });
 paymentSchema.index({ booking: 1 });
 paymentSchema.index({ tenant: 1, status: 1 });
 

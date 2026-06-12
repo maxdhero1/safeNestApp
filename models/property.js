@@ -1,19 +1,15 @@
 const mongoose = require('mongoose');
 
+
 const PropertySchema = new mongoose.Schema({
-//feature/user-module
-    
     // ==========================================
     // 1. SYSTEM IDENTIFIERS (The "ID Cards")
     // ==========================================
-    
-    // Unique ID used for the frontend (hides our internal DB structure)
     uuid: {
         type: String,
-        default: () => uuidv4(), // a new uuid is generated for each property
+        default: () => uuidv4(),
         unique: true
     },
-    // Links this property to the specific Landlord/Agent in the User table
     landlord_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -23,7 +19,6 @@ const PropertySchema = new mongoose.Schema({
     // ==========================================
     // 2. CORE LISTING DETAILS (The "Basics")
     // ==========================================
-    
     title: {
         type: String,
         required: [true, 'Property title is required'],
@@ -39,7 +34,7 @@ const PropertySchema = new mongoose.Schema({
         type: String,
         required: [true, 'Specify the property type.'],
         enum: {
-            values: ['apartment', 'house', 'self-contain', 'office', 'studio', 'shop',],
+            values: ['apartment', 'house', 'self-contain', 'office', 'studio', 'shop'],
             message: 'Property type must be either: apartment, house, self-contain, office, studio, or shop'
         }
     },
@@ -54,23 +49,22 @@ const PropertySchema = new mongoose.Schema({
         enum: ['per-month', 'per-year'],
         default: 'per-year'
     },
-    location: {
-        address: {
-            type: String,
-            required: [true, 'Property address is required'],
-            trim: true
-        },
-        city: {
-            type: String,
-            required: [true, 'City is required'],
-            trim: true
-        },
-        state: {
-            type: String,
-            required: [true, 'State is required'],
-            trim: true
-        }
 
+    // Flattened location fields to perfectly match your controller queries
+    address: {
+        type: String,
+        required: [true, 'Property address is required'],
+        trim: true
+    },
+    city: {
+        type: String,
+        required: [true, 'City is required'],
+        trim: true
+    },
+    state: {
+        type: String,
+        required: [true, 'State is required'],
+        trim: true
     },
     bedrooms: {
         type: Number,
@@ -80,69 +74,83 @@ const PropertySchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    images: [String], // Array of image URLs (will connect to file uploads later)
+    images: [String],
+    documents: [String],
 
-    //ANTI-FRAUD AND RELATIONSHIP FIELDS
-    landlord: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'User', // Links this property directly to a registered User document
-        required: [true, 'A property must belong to a landlord or verified agent.']
-    },
-    isPropertyVerified: {
-        type: Boolean,
-        default: false // Set to false by default until admin verifies C of O or structural documents
-    },
-    verificationStatus: {
+    // ==========================================
+    // 3. EXTRA FINANCIAL FEES
+    // ==========================================
+    agency_fee: { type: Number, default: 0 },
+    legal_fee: { type: Number, default: 0 },
+    caution_fee: { type: Number, default: 0 },
+    service_charge: { type: Number, default: 0 },
+
+    // ==========================================
+    // 4. ANTI-FRAUD & STATUS FIELDS
+    // ==========================================
+    property_hash: {
         type: String,
-        enum: ['pending', 'approved', 'rejected'],
-        default: 'pending'
+        unique: true
+    },
+    image_hashes: [String],
+    ocr_scanned_text: String,
+    is_resale: {
+        type: Boolean,
+        default: false
+    },
+    last_transfer_date: Date,
+    availability_status: {
+        type: String,
+        enum: ['Available', 'Rented', 'Unavailable'],
+        default: 'Available'
+    },
+    verification_status: {
+        type: String,
+        enum: ['Pending', 'Verified', 'Rejected'],
+        default: 'Pending'
+    },
+    uuid: {
+        type: String,
+        default: () => new mongoose.Types.ObjectId().toString(),
+        unique: true
     }
-},
-    {
-        timestamps: true, // Automatically manages createdAt and updatedAt fields
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true }
-    }
-);
 
-// feature/user-module
 }, {
-    timestamps: true, // Automatically track 'createdAt' and 'updatedAt'
+    timestamps: true, // ✅ Correctly consolidated schema options block
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
 // ==========================================
-// SMART LOGIC & VIRTUALS
+// 5. SMART LOGIC & VIRTUALS
 // ==========================================
 
-/**
- * 1. THE TOTAL PACKAGE CALCULATOR
- * Automatically sums up all fees so the Renter sees the final cost immediately.
- */
-PropertySchema.virtual('total_package').get(function() {
+// Automatically calculates upfront breakdown values
+PropertySchema.virtual('total_package').get(function () {
     return this.price + this.agency_fee + this.legal_fee + this.caution_fee + this.service_charge;
 });
 
-/**
- * 2. ADDRESS FINGERPRINTING (Pre-Save Hook)
- * This prevents two people from listing the same house address at the same time.
- */
-PropertySchema.pre('save', async function(next) {
-    // Generate the hash
-    const generatedHash = `${this.address}-${this.city}-${this.state}`
+// Address Fingerprinting Hook (Prevents double listings)
+PropertySchema.pre('save', async function (next) {
+    if (!this.isModified('address') && !this.isModified('city') && !this.isModified('state') && this.property_hash) {
+        return next();
+    }
+
+    this.property_hash = `${this.address}-${this.city}-${this.state}`
         .toLowerCase()
         .replace(/\s+/g, '');
-    
-    this.property_hash = generatedHash;
-//populate middleware: Automatically attaches basic landlord details (name, email) when querying properties.
-PropertySchema.pre(/^find/, async function () {
-    this.populate({
-        path: 'landlord',
-        select: 'fullName email role isVerified'
-    });
+
+    next(); // ✅ Fixed missing structural block boundary
 });
 
-const Property = mongoose.model('Property', PropertySchema);
+// Auto-populate pipeline logic middleware
+PropertySchema.pre(/^find/, function (next) {
+    this.populate({
+        path: 'landlord_id',
+        select: 'fullName email role isVerified'
+    });
+    next();
+});
 
+const Property = mongoose.models.Property || mongoose.model('Property', PropertySchema);
 module.exports = Property;

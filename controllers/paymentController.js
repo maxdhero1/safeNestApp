@@ -1,5 +1,5 @@
-const Payment = require('../Model/paymentModel');
-const Booking = require('../Model/bookingModel');
+const Payment = require('../models/paymentModel');
+const Booking = require('../models/bookingModel');
 const paystack = require('paystack-api')(process.env.PAYSTACK_SECRET_KEY);
 
 // Initiate Payment

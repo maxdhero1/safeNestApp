@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/user'); // Ensure your model name is lowercase 'user.js'
-const appError = require('../utils/apperror'); // Standardized lowercase
-const catchAsync = require('../utils/catchasync'); // Standardized lowercase
+const User = require('../models/User'); // Ensure your model name is lowercase 'user.js'
+const appError = require('../utils/appError'); // Standardized lowercase
+const catchAsync = require('../utils/catchAsync'); // Standardized lowercase
 
 /**
  * 1. THE PROTECT GUARD

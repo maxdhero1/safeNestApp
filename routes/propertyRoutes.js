@@ -1,39 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const propertyController = require('../controllers/propertyController');
-//feature/user-module
-const authController = require('../controllers/authController');
-
-//clean extratction of the gatekeeper middleware.
-const { protect, restrictTo } = authController;
-
-//PUBLIC APP MARKETPLACE ENDPOINTS (No authentication required)
-//GET /api/v1/properties/search -> custom filtering module.
-router.get('/search', propertyController.searchProperties);
-
-//GET /api/v1/properties/ -> Get all verified properties (for the public marketplace)
-router.get('/', propertyController.getAllProperties);
-
-//Apply security check globally to every endpoint written below this Point
-router.use(protect);
-
-router.route('/')
-    .post(restrictTo('landlord', 'agent', 'admin'), propertyController.createProperty) //Only landlords, agents, and admins can create properties.
-
-//PATCH /api/v1/properties/:id  securely update a specific property.
-//DELETE /api/v1/properties/:id  securely delete a specific property.
-router.route('/:id')
-    .patch(restrictTo('landlord', 'agent', 'admin'), propertyController.updateProperty) //Only landlords, agents, and admins can update properties.
-    .delete(restrictTo('landlord', 'agent', 'admin'), propertyController.deleteProperty); //Only landlords, agents, and admins can delete properties.
-
-//ADMIN-ONLY ENDPOINTS
-
-//PATCH /api/v1/properties/:id/verify.
-router.patch('/:id/verify', restrictTo('admin'), propertyController.verifyProperty); //Only admins can verify properties.
 const upload = require('../utils/cloudinary'); 
+
 const { protect, restrictTo } = require('../middlewares/authMiddleware');
 
-// --- A. THE CREATE ROUTE ---
+
+// PUBLIC ENDPOINTS (No authentication required)
+
+
+// Task 2.5.1: Search and Browse listings
+router.get('/search', propertyController.searchProperties);
+router.get('/all', propertyController.getAllProperties);
+router.get('/', propertyController.getAllProperties); 
+
+//  ADDITION: Fetch a single property by ID (Essential for the frontend details page)
+router.get('/:id', propertyController.getProperty || propertyController.getPropertyById || ((req, res) => res.status(501).json({ message: "Get single property endpoint" })));
+
+
+// SECURE LANDLORD / AGENT / ADMIN ENDPOINTS
+
+
 // Task 2.1.2 & 2.1.4: Multi-platform upload + Security
 router.post('/create', 
     protect, 
@@ -45,18 +32,23 @@ router.post('/create',
     propertyController.createProperty
 );
 
-// --- B. DISCOVERY ROUTES ---
-// Task 2.5.1: Search and Browse verified listings
-router.get('/all', propertyController.getAllProperties);
-router.get('/search', propertyController.searchProperties);
+// Fallback traditional REST endpoint
+router.post('/', protect, restrictTo('landlord', 'agent', 'admin'), propertyController.createProperty);
 
-// --- C. MANAGEMENT ROUTES ---
-// Task 2.3.2: Allow landlords to manage their listings securely
-router.patch('/update/:id', protect, propertyController.updateProperty);
-router.delete('/delete/:id', protect, propertyController.deleteProperty);
+// Task 2.3.2: Manage listings securely
+router.patch('/update/:id', protect, restrictTo('landlord', 'agent', 'admin'), propertyController.updateProperty);
+router.delete('/delete/:id', protect, restrictTo('landlord', 'agent', 'admin'), propertyController.deleteProperty);
 
-// --- D. ADMIN ROUTES ---
-// Task 1.4.1: Admin-only verification for badges
+// Legacy URL route bindings for backward compatibility
+router.route('/:id')
+    .patch(protect, restrictTo('landlord', 'agent', 'admin'), propertyController.updateProperty)
+    .delete(protect, restrictTo('landlord', 'agent', 'admin'), propertyController.deleteProperty);
+
+
+// ADMIN-ONLY ROUTES
+
+
+// Task 1.4.1: Admin-only verification for verification badges
 router.patch('/verify/:id', protect, restrictTo('admin'), propertyController.verifyProperty);
 
 module.exports = router;

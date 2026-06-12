@@ -12,7 +12,6 @@ app.use(express.json());
 app.listen(port, ()=>{
     console.log(`server is running on port ${port}`);
 })
-const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/configdb.js');
 const AppError = require('./utils/AppError');
